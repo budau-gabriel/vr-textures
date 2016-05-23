@@ -27,12 +27,12 @@ public class App {
 	private int errorSize;
 
 	App() throws IOException {
-		image = ImageIO.read(new File("src\\main\\resources\\img\\brick.jpg"));
+		image = ImageIO.read(new File("src\\main\\resources\\img\\radishes.jpg"));
 		width = image.getWidth();
 		height = image.getHeight();
 		imgCount = 50;
 		patchSize = 50;
-		size = 10;
+		size = 5;
 		errorSize = 5;
 		int imgSize = (patchSize - patchSize/errorSize)*size + patchSize/errorSize;
 		finalImg = new Color[imgSize][];
@@ -86,22 +86,31 @@ public class App {
 		x = column*(this.patchSize - this.patchSize/errorSize);
 		y = line*(this.patchSize - this.patchSize/errorSize);
 		
-		if(line == 0){//first line
-			if(column == 0){
-				//first column
-				insertMatrix(getColorMatrix(randomSubImages.get(randInt(0, randomSubImages.size()-1))), x, y);
-				
-			} else {
-				// calculate left side error
-			    Color[][] optimalMatrix = getOptimalOverlapingMatrix(finalImg, x, y);
-				insertMatrix(optimalMatrix, x, y);
-			    //insertMatrix(getColorMatrix(randomSubImages.get(randInt(0, randomSubImages.size()-1))), x, y);
-			}
-		} else {
+		if(line==0){
+		    if(column == 0){
+                //first column
+                insertMatrix(getColorMatrix(randomSubImages.get(randInt(0, randomSubImages.size()-1))), x, y);
+                
+            } else {
+                // calculate left side error
+                Color[][] optimalMatrix = getOptimalOverlapingMatrix(finalImg, x, y);
+                insertMatrix(optimalMatrix, x, y);
+                //insertMatrix(getColorMatrix(randomSubImages.get(randInt(0, randomSubImages.size()-1))), x, y);
+            }
+		}
+		
+		if(column == 0 && line != 0){
+		    Color[][] optimalMatrix = getOptimalOverlapingMatrix(finalImg, x, y);
+            insertMatrix(optimalMatrix, x, y);
+		}
+		
+		if(line != 0){//first line
+			if(column != 0){
 			//calculate left and top error
 		    Color[][] optimalMatrix = getOptimal2SideOverlapingMatrix(finalImg, x, y);
 		    insertMatrix(optimalMatrix, x, y);
 			//insertMatrix(getColorMatrix(randomSubImages.get(randInt(0, randomSubImages.size()-1))), x, y);
+			}
 		}
 		
 	}
