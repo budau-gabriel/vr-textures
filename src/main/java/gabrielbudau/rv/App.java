@@ -10,8 +10,6 @@ import java.util.Random;
 
 import javax.imageio.ImageIO;
 
-import org.ejml.simple.SimpleMatrix;
-
 /**
  * Hello world!
  *
@@ -26,18 +24,21 @@ public class App {
 	private int width;
 	private int height;
 	private int size;
+	private int errorSize;
 
 	App() throws IOException {
 		image = ImageIO.read(new File("src\\main\\resources\\img\\brick.jpg"));
 		width = image.getWidth();
 		height = image.getHeight();
-		imgCount = 30;
+		imgCount = 50;
 		patchSize = 50;
-		size = 5;
-		finalImg = new Color[size*patchSize][];
-		for(int i = 0; i < size*patchSize; i ++){
-			finalImg[i] = new Color[size*patchSize];
-			for(int j = 0; j < size*patchSize; j ++){
+		size = 10;
+		errorSize = 5;
+		int imgSize = (patchSize - patchSize/errorSize)*size + patchSize/errorSize;
+		finalImg = new Color[imgSize][];
+		for(int i = 0; i < imgSize; i ++){
+			finalImg[i] = new Color[imgSize];
+			for(int j = 0; j < imgSize; j ++){
 				finalImg[i][j] = new Color(0);
 			}
 		}
@@ -82,8 +83,8 @@ public class App {
 	public void addMatrix(int line, int column){
 		int x;
 		int y;
-		x = (column == 0) ? 0 : ((column*this.patchSize) - (this.patchSize/6));
-		y = (line == 0) ? 0 : ((line*this.patchSize) - (this.patchSize/6));
+		x = column*(this.patchSize - this.patchSize/errorSize);
+		y = line*(this.patchSize - this.patchSize/errorSize);
 		
 		if(line == 0){//first line
 			if(column == 0){
@@ -92,14 +93,69 @@ public class App {
 				
 			} else {
 				// calculate left side error
-				insertMatrix(getColorMatrix(randomSubImages.get(randInt(0, randomSubImages.size()-1))), x, y);
+			    Color[][] optimalMatrix = getOptimalOverlapingMatrix(finalImg, x, y);
+				insertMatrix(optimalMatrix, x, y);
+			    //insertMatrix(getColorMatrix(randomSubImages.get(randInt(0, randomSubImages.size()-1))), x, y);
 			}
 		} else {
 			//calculate left and top error
-			insertMatrix(getColorMatrix(randomSubImages.get(randInt(0, randomSubImages.size()-1))), x, y);
+		    Color[][] optimalMatrix = getOptimal2SideOverlapingMatrix(finalImg, x, y);
+		    insertMatrix(optimalMatrix, x, y);
+			//insertMatrix(getColorMatrix(randomSubImages.get(randInt(0, randomSubImages.size()-1))), x, y);
 		}
 		
 	}
+	
+	private Color[][] getOptimalOverlapingMatrix(Color[][] matrix, int x, int y){
+	    Color[][] prevOverlap = getSubMatrix(matrix, x, y,  this.patchSize/errorSize, this.patchSize);
+	    int min = 0;
+	    Color[][] returnMat = null;
+	    for(BufferedImage img:this.randomSubImages){
+	        Color[][] currentOverMatrix = getColorMatrix(img);
+	        Color[][] currentOverColors = getSubMatrix(currentOverMatrix, 0, 0,  this.patchSize/errorSize, this.patchSize);
+	        int currentError = getError(prevOverlap, currentOverColors);
+	        
+	        if(returnMat == null){
+	            returnMat = currentOverMatrix;
+	        }
+	        if (min == 0){
+	            min = currentError;
+	        }
+	        if(currentError < min){
+	            min = currentError;
+	            returnMat = currentOverMatrix;
+	        }
+	    }
+	    
+	    return returnMat;
+	}
+	
+	private Color[][] getOptimal2SideOverlapingMatrix(Color[][] matrix, int x, int y){
+        Color[][] prevOverlapSide = getSubMatrix(matrix, x, y, this.patchSize/errorSize, this.patchSize);
+        Color[][] prevOverlapTop = getSubMatrix(matrix, x, y, this.patchSize, this.patchSize/errorSize);
+        int min = 0;
+        Color[][] returnMat = null;
+        for(BufferedImage img:this.randomSubImages){
+            Color[][] currentOverMatrix = getColorMatrix(img);
+            Color[][] currentOverColorsSide = getSubMatrix(currentOverMatrix, 0, 0, this.patchSize/errorSize, this.patchSize);
+            Color[][] currentOverColorsTop = getSubMatrix(currentOverMatrix, 0, 0, this.patchSize, this.patchSize/errorSize);
+            int currentError = getError(prevOverlapSide, currentOverColorsSide);
+            currentError += getError(prevOverlapTop, currentOverColorsTop);
+            
+            if(returnMat == null){
+                returnMat = currentOverMatrix;
+            }
+            if (min == 0){
+                min = currentError;
+            }
+            if(currentError > min){
+                min = currentError;
+                returnMat = currentOverMatrix;
+            }
+        }
+        
+        return returnMat;
+    }
 	
 	private Color[][] getColorMatrix(BufferedImage img){
 		Color[][] colorMatrix = new Color[img.getHeight()][];
